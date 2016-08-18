@@ -2,6 +2,7 @@ package dsdbench
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/docker/docker/layer"
@@ -132,9 +133,56 @@ func TestFileDeletion(t *testing.T) {
 	}
 }
 
+func TestMount1to125Layers(t *testing.T) {
+	ls, err := getLayerStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup(t, ls)
+
+	// Layer store limits at 125
+	max := 125
+	inits := make([]LayerInit, max)
+	inits[0] = InitWithFiles(
+		CreateDirectory("/etc", 0755),
+		NewTestFile("/etc/hosts", []byte("mydomain 10.0.0.1"), 0644),
+		NewTestFile("/etc/profile", []byte("PATH=/usr/bin"), 0644),
+		CreateDirectory("/testfiles", 0755),
+	)
+
+	for i := 1; i < max; i++ {
+		inits[i] = InitWithFiles(
+			NewTestFile(fmt.Sprintf("/testfiles/t-%d", i), []byte("irrelevant data"), 0644),
+		)
+	}
+
+	var l layer.Layer
+	var parentID layer.ChainID
+	for i, lf := range inits {
+		previous := l
+		l, err = CreateLayer(ls, parentID, lf)
+		if err != nil {
+			t.Fatalf("failed to create layer %d: %+v", i+1, err)
+		}
+		parentID = l.ChainID()
+
+		if err := CheckLayer(ls, l.ChainID(), inits[:i+1]...); err != nil {
+			t.Fatalf("check layer %d failed: %+v", i+1, err)
+		}
+
+		if previous != nil {
+			if _, err = ls.Release(previous); err != nil {
+				t.Fatalf("layer %d release error: %+v", i+1, err)
+			}
+		}
+	}
+
+	if _, err = ls.Release(l); err != nil {
+		t.Fatalf("layer %d release error: %+v", max, err)
+	}
+}
+
 // TODO: Run basic POSIX operations tests
 func TestPosix(t *testing.T) {
 	t.Skip("Not implemented")
 }
-
-// TODO: Benchmarks!
