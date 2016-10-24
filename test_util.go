@@ -169,6 +169,24 @@ func (r *rename) ApplyFile(root string) error {
 	return os.Rename(filepath.Join(root, r.old), filepath.Join(root, r.new))
 }
 
+type chown struct {
+	name string
+	uid  int
+	gid  int
+}
+
+func Chown(name string, uid, gid int) FileApplier {
+	return &chown{
+		name: name,
+		uid:  uid,
+		gid:  gid,
+	}
+}
+
+func (c *chown) ApplyFile(root string) error {
+	return os.Chown(filepath.Join(root, c.name), c.uid, c.gid)
+}
+
 func InitWithFiles(files ...FileApplier) LayerInit {
 	return func(root string) error {
 		for _, f := range files {

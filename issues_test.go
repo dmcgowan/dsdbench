@@ -152,3 +152,49 @@ func TestRename(t *testing.T) {
 		t.Fatalf("Unexpected layer content: %+v", err)
 	}
 }
+
+// https://github.com/docker/docker/issues/27298
+func TestDirectoryPermissionOnCommit(t *testing.T) {
+	ls, err := getLayerStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup(t, ls)
+
+	l1Init := InitWithFiles([]FileApplier{
+		CreateDirectory("/dir1", 0700),
+		CreateDirectory("/dir2", 0700),
+		CreateDirectory("/dir3", 0700),
+		CreateDirectory("/dir4", 0700),
+		NewTestFile("/dir4/f1", []byte("..."), 0644),
+		CreateDirectory("/dir5", 0700),
+		NewTestFile("/dir5/f1", []byte("..."), 0644),
+		Chown("/dir1", 1, 1),
+		Chown("/dir2", 1, 1),
+		Chown("/dir3", 1, 1),
+		Chown("/dir5", 1, 1),
+		Chown("/dir5/f1", 1, 1),
+	}...)
+	l2Init := InitWithFiles([]FileApplier{
+		Chown("/dir2", 0, 0),
+		RemoveFile("/dir3"),
+		Chown("/dir4", 1, 1),
+		Chown("/dir4/f1", 1, 1),
+	}...)
+	l3Init := InitWithFiles([]FileApplier{
+		CreateDirectory("/dir3", 0700),
+		Chown("/dir3", 1, 1),
+		RemoveFile("/dir5"),
+		CreateDirectory("/dir5", 0700),
+		Chown("/dir5", 1, 1),
+	}...)
+
+	l, err := CreateLayerChain(ls, l1Init, l2Init, l3Init)
+	if err != nil {
+		t.Fatalf("Failed to create layer chain: %+v", err)
+	}
+
+	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init, l3Init); err != nil {
+		t.Fatalf("Unexpected layer content: %+v", err)
+	}
+}
