@@ -133,6 +133,37 @@ func TestFileDeletion(t *testing.T) {
 	}
 }
 
+func TestDirectoryReplace(t *testing.T) {
+	ls, err := getLayerStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup(t, ls)
+
+	l1Init := InitWithFiles([]FileApplier{
+		CreateDirectory("/test/something", 0755),
+		NewTestFile("/test/something/f1", []byte{'1'}, 0644),
+		NewTestFile("/test/something/f2", []byte{'1'}, 0644),
+	}...)
+	l2Init := InitWithFiles([]FileApplier{
+		RemoveFile("/test/something"),
+		NewTestFile("/test/something", []byte("something new!"), 0644),
+	}...)
+
+	l, err := CreateLayerChain(ls, l1Init, l2Init)
+	if err != nil {
+		t.Fatalf("Failed to create layer chain: %+v", err)
+	}
+
+	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init); err != nil {
+		t.Fatalf("Layer check failure: %+v", err)
+	}
+
+	if _, err := ls.Release(l); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestMount1to125Layers(t *testing.T) {
 	ls, err := getLayerStore()
 	if err != nil {
