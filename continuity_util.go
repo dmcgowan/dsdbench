@@ -13,7 +13,10 @@ type resourceUpdate struct {
 }
 
 func (u resourceUpdate) String() string {
-	return fmt.Sprintf("%s(%o) -> %s(%o)", u.Original.Path(), u.Original.Mode(), u.Updated.Path(), u.Updated.Mode())
+	return fmt.Sprintf("%s(mode: %o, uid: %s, gid: %s) -> %s(mode: %o, uid: %s, gid: %s)",
+		u.Original.Path(), u.Original.Mode(), u.Original.UID(), u.Original.GID(),
+		u.Updated.Path(), u.Updated.Mode(), u.Updated.UID(), u.Updated.GID(),
+	)
 }
 
 type resourceListDifference struct {
