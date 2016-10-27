@@ -44,50 +44,50 @@ func simpleLayerTest(t *testing.T, layers ...LayerInit) {
 }
 
 func TestLayerCreate(t *testing.T) {
-	l1Init := InitWithFiles([]FileApplier{
+	l1Init := InitWithFiles(
 		CreateDirectory("/etc", 0755),
 		NewTestFile("/etc/hosts", []byte("mydomain 10.0.0.1"), 0644),
 		NewTestFile("/etc/profile", []byte("PATH=/usr/bin"), 0644),
-	}...)
-	l2Init := InitWithFiles([]FileApplier{
+	)
+	l2Init := InitWithFiles(
 		NewTestFile("/etc/hosts", []byte("mydomain 10.0.0.120"), 0644),
 		NewTestFile("/etc/profile", []byte("PATH=/usr/bin"), 0666),
 		CreateDirectory("/root", 0700),
 		NewTestFile("/root/.bashrc", []byte("PATH=/usr/sbin:/usr/bin"), 0644),
-	}...)
+	)
 
 	simpleLayerTest(t, l1Init, l2Init)
 }
 
 func TestFileDeletion(t *testing.T) {
-	l1Init := InitWithFiles([]FileApplier{
+	l1Init := InitWithFiles(
 		CreateDirectory("/test/somedir", 0755),
-	}...)
-	l2Init := InitWithFiles([]FileApplier{
+	)
+	l2Init := InitWithFiles(
 		NewTestFile("/test/a", []byte{}, 0644),
 		NewTestFile("/test/b", []byte{}, 0644),
 		CreateDirectory("/test/otherdir", 0755),
 		NewTestFile("/test/otherdir/.empty", []byte{}, 0644),
-	}...)
-	l3Init := InitWithFiles([]FileApplier{
+	)
+	l3Init := InitWithFiles(
 		RemoveFile("/test/a"),
 		RemoveFile("/test/b"),
 		RemoveFile("/test/otherdir"),
-	}...)
+	)
 
 	simpleLayerTest(t, l1Init, l2Init, l3Init)
 }
 
 func TestDirectoryReplace(t *testing.T) {
-	l1Init := InitWithFiles([]FileApplier{
+	l1Init := InitWithFiles(
 		CreateDirectory("/test/something", 0755),
 		NewTestFile("/test/something/f1", []byte{'1'}, 0644),
 		NewTestFile("/test/something/f2", []byte{'1'}, 0644),
-	}...)
-	l2Init := InitWithFiles([]FileApplier{
+	)
+	l2Init := InitWithFiles(
 		RemoveFile("/test/something"),
 		NewTestFile("/test/something", []byte("something new!"), 0644),
-	}...)
+	)
 
 	simpleLayerTest(t, l1Init, l2Init)
 }
