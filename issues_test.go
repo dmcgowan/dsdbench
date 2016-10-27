@@ -54,12 +54,6 @@ func TestLayerFileUpdate(t *testing.T) {
 
 // See https://github.com/docker/docker/issues/25244
 func TestRemoveDirectoryInLowerLayer(t *testing.T) {
-	ls, err := getLayerStore()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup(t, ls)
-
 	l1Init := InitWithFiles([]FileApplier{
 		CreateDirectory("/lib", 0700),
 		NewTestFile("/lib/hidden", []byte{}, 0644),
@@ -73,18 +67,7 @@ func TestRemoveDirectoryInLowerLayer(t *testing.T) {
 		NewTestFile("/lib/newfile", []byte{}, 0644),
 	}...)
 
-	l, err := CreateLayerChain(ls, l1Init, l2Init, l3Init)
-	if err != nil {
-		t.Fatalf("Failed to create layer chain: %+v", err)
-	}
-
-	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init, l3Init); err != nil {
-		t.Fatalf("Layer check failure: %+v", err)
-	}
-
-	if _, err := ls.Release(l); err != nil {
-		t.Fatal(err)
-	}
+	simpleLayerTest(t, l1Init, l2Init, l3Init)
 }
 
 // See https://github.com/docker/docker/issues/24309
@@ -124,12 +107,6 @@ func TestChown(t *testing.T) {
 
 // https://github.com/docker/docker/issues/25409
 func TestRename(t *testing.T) {
-	ls, err := getLayerStore()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup(t, ls)
-
 	l1Init := InitWithFiles([]FileApplier{
 		CreateDirectory("/dir1", 0700),
 		CreateDirectory("/somefiles", 0700),
@@ -143,24 +120,11 @@ func TestRename(t *testing.T) {
 		Rename("/somefiles/f2", "/somefiles/f3"),
 	}...)
 
-	l, err := CreateLayerChain(ls, l1Init, l2Init)
-	if err != nil {
-		t.Fatalf("Failed to create layer chain: %+v", err)
-	}
-
-	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init); err != nil {
-		t.Fatalf("Unexpected layer content: %+v", err)
-	}
+	simpleLayerTest(t, l1Init, l2Init)
 }
 
 // https://github.com/docker/docker/issues/27298
 func TestDirectoryPermissionOnCommit(t *testing.T) {
-	ls, err := getLayerStore()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup(t, ls)
-
 	l1Init := InitWithFiles([]FileApplier{
 		CreateDirectory("/dir1", 0700),
 		CreateDirectory("/dir2", 0700),
@@ -189,12 +153,5 @@ func TestDirectoryPermissionOnCommit(t *testing.T) {
 		Chown("/dir5", 1, 1),
 	}...)
 
-	l, err := CreateLayerChain(ls, l1Init, l2Init, l3Init)
-	if err != nil {
-		t.Fatalf("Failed to create layer chain: %+v", err)
-	}
-
-	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init, l3Init); err != nil {
-		t.Fatalf("Unexpected layer content: %+v", err)
-	}
+	simpleLayerTest(t, l1Init, l2Init, l3Init)
 }

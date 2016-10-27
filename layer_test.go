@@ -19,13 +19,31 @@ func cleanup(t testing.TB, ls layer.Store) {
 	}
 }
 
-func TestLayerCreate(t *testing.T) {
+// simpleLayersTest creates a layer chain made up of the layer init
+// functions and compares it with a flat directory with all the
+// layer initilizers applied.
+func simpleLayerTest(t *testing.T, layers ...LayerInit) {
 	ls, err := getLayerStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cleanup(t, ls)
 
+	l, err := CreateLayerChain(ls, layers...)
+	if err != nil {
+		t.Fatalf("Failed to create layer chain: %+v", err)
+	}
+
+	if err := CheckLayer(ls, l.ChainID(), layers...); err != nil {
+		t.Fatalf("Layer check failure: %+v", err)
+	}
+
+	if _, err := ls.Release(l); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLayerCreate(t *testing.T) {
 	l1Init := InitWithFiles([]FileApplier{
 		CreateDirectory("/etc", 0755),
 		NewTestFile("/etc/hosts", []byte("mydomain 10.0.0.1"), 0644),
@@ -38,18 +56,40 @@ func TestLayerCreate(t *testing.T) {
 		NewTestFile("/root/.bashrc", []byte("PATH=/usr/sbin:/usr/bin"), 0644),
 	}...)
 
-	l, err := CreateLayerChain(ls, l1Init, l2Init)
-	if err != nil {
-		t.Fatalf("Failed to create layer chain: %+v", err)
-	}
+	simpleLayerTest(t, l1Init, l2Init)
+}
 
-	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init); err != nil {
-		t.Fatalf("Layer check failure: %+v", err)
-	}
+func TestFileDeletion(t *testing.T) {
+	l1Init := InitWithFiles([]FileApplier{
+		CreateDirectory("/test/somedir", 0755),
+	}...)
+	l2Init := InitWithFiles([]FileApplier{
+		NewTestFile("/test/a", []byte{}, 0644),
+		NewTestFile("/test/b", []byte{}, 0644),
+		CreateDirectory("/test/otherdir", 0755),
+		NewTestFile("/test/otherdir/.empty", []byte{}, 0644),
+	}...)
+	l3Init := InitWithFiles([]FileApplier{
+		RemoveFile("/test/a"),
+		RemoveFile("/test/b"),
+		RemoveFile("/test/otherdir"),
+	}...)
 
-	if _, err := ls.Release(l); err != nil {
-		t.Fatal(err)
-	}
+	simpleLayerTest(t, l1Init, l2Init, l3Init)
+}
+
+func TestDirectoryReplace(t *testing.T) {
+	l1Init := InitWithFiles([]FileApplier{
+		CreateDirectory("/test/something", 0755),
+		NewTestFile("/test/something/f1", []byte{'1'}, 0644),
+		NewTestFile("/test/something/f2", []byte{'1'}, 0644),
+	}...)
+	l2Init := InitWithFiles([]FileApplier{
+		RemoveFile("/test/something"),
+		NewTestFile("/test/something", []byte("something new!"), 0644),
+	}...)
+
+	simpleLayerTest(t, l1Init, l2Init)
 }
 
 func TestTarRegister(t *testing.T) {
@@ -94,73 +134,6 @@ func TestTarRegister(t *testing.T) {
 
 	if err := CheckLayer(ls, layer2.ChainID(), InitWithFiles(append(files1, files2...)...)); err != nil {
 		t.Fatalf("Layer check failure: %+v", err)
-	}
-}
-
-func TestFileDeletion(t *testing.T) {
-	ls, err := getLayerStore()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup(t, ls)
-
-	l1Init := InitWithFiles([]FileApplier{
-		CreateDirectory("/test/somedir", 0755),
-	}...)
-	l2Init := InitWithFiles([]FileApplier{
-		NewTestFile("/test/a", []byte{}, 0644),
-		NewTestFile("/test/b", []byte{}, 0644),
-		CreateDirectory("/test/otherdir", 0755),
-		NewTestFile("/test/otherdir/.empty", []byte{}, 0644),
-	}...)
-	l3Init := InitWithFiles([]FileApplier{
-		RemoveFile("/test/a"),
-		RemoveFile("/test/b"),
-		RemoveFile("/test/otherdir"),
-	}...)
-
-	l, err := CreateLayerChain(ls, l1Init, l2Init, l3Init)
-	if err != nil {
-		t.Fatalf("Failed to create layer chain: %+v", err)
-	}
-
-	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init, l3Init); err != nil {
-		t.Fatalf("Layer check failure: %+v", err)
-	}
-
-	if _, err := ls.Release(l); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestDirectoryReplace(t *testing.T) {
-	ls, err := getLayerStore()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup(t, ls)
-
-	l1Init := InitWithFiles([]FileApplier{
-		CreateDirectory("/test/something", 0755),
-		NewTestFile("/test/something/f1", []byte{'1'}, 0644),
-		NewTestFile("/test/something/f2", []byte{'1'}, 0644),
-	}...)
-	l2Init := InitWithFiles([]FileApplier{
-		RemoveFile("/test/something"),
-		NewTestFile("/test/something", []byte("something new!"), 0644),
-	}...)
-
-	l, err := CreateLayerChain(ls, l1Init, l2Init)
-	if err != nil {
-		t.Fatalf("Failed to create layer chain: %+v", err)
-	}
-
-	if err := CheckLayer(ls, l.ChainID(), l1Init, l2Init); err != nil {
-		t.Fatalf("Layer check failure: %+v", err)
-	}
-
-	if _, err := ls.Release(l); err != nil {
-		t.Fatal(err)
 	}
 }
 
