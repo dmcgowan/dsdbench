@@ -7,6 +7,11 @@ import (
 
 	"github.com/docker/docker/layer"
 	"github.com/docker/docker/pkg/reexec"
+
+	_ "github.com/docker/docker/daemon/graphdriver/aufs"
+	_ "github.com/docker/docker/daemon/graphdriver/devmapper"
+	_ "github.com/docker/docker/daemon/graphdriver/overlay"
+	_ "github.com/docker/docker/daemon/graphdriver/overlay2"
 )
 
 func init() {

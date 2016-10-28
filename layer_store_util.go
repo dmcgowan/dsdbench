@@ -11,11 +11,6 @@ import (
 	"github.com/docker/docker/daemon/graphdriver"
 	"github.com/docker/docker/layer"
 	"github.com/pkg/errors"
-
-	_ "github.com/docker/docker/daemon/graphdriver/aufs"
-	_ "github.com/docker/docker/daemon/graphdriver/devmapper"
-	_ "github.com/docker/docker/daemon/graphdriver/overlay"
-	_ "github.com/docker/docker/daemon/graphdriver/overlay2"
 )
 
 var (

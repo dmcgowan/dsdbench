@@ -24,11 +24,11 @@ func BenchmarkCreateEmptyLayer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		l, err := ls.Register(bytes.NewReader(emptyTar), "")
 		if err != nil {
-			b.Fatal("Failed to register new layer: %+v", err)
+			b.Fatalf("Failed to register new layer: %+v", err)
 		}
 		b.StopTimer()
 		if _, err := ls.Release(l); err != nil {
-			b.Fatal("Failed to release layer: %+v", err)
+			b.Fatalf("Failed to release layer: %+v", err)
 		}
 		b.StartTimer()
 	}

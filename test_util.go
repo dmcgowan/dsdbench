@@ -16,10 +16,11 @@ import (
 	"github.com/stevvooe/continuity"
 )
 
-const Scratch = layer.ChainID("")
-
+// LayerInit initializes a layer using the provided root
 type LayerInit func(root string) error
 
+// CreateLayer creates a new layer in the layer store using the
+// given layer initialize function on top of the given parent.
 func CreateLayer(ls layer.Store, parent layer.ChainID, layerFunc LayerInit) (l layer.Layer, err error) {
 	containerID := stringid.GenerateRandomID()
 	mount, err := ls.CreateRWLayer(containerID, parent, "", nil, nil)
@@ -65,6 +66,8 @@ func CreateLayer(ls layer.Store, parent layer.ChainID, layerFunc LayerInit) (l l
 	return l, nil
 }
 
+// CreateLayerChain creates a new chain of layers in the given layer store
+// using the provided layer initializers and returns the topmost layer.
 func CreateLayerChain(ls layer.Store, layerFuncs ...LayerInit) (l layer.Layer, err error) {
 	var parentID layer.ChainID
 	for i, lf := range layerFuncs {
@@ -88,6 +91,7 @@ func CreateLayerChain(ls layer.Store, layerFuncs ...LayerInit) (l layer.Layer, e
 
 }
 
+// FileApplier applies single file changes
 type FileApplier interface {
 	ApplyFile(root string) error
 }
@@ -98,6 +102,8 @@ type testFile struct {
 	permission os.FileMode
 }
 
+// NewTestFile returns a file applier which creates a file as the
+// provided name with the given content and permission.
 func NewTestFile(name string, content []byte, perm os.FileMode) FileApplier {
 	return &testFile{
 		name:       name,
@@ -123,6 +129,7 @@ type removeFile struct {
 	name string
 }
 
+// RemoveFile returns a file applier which removes the provided file name
 func RemoveFile(name string) FileApplier {
 	return &removeFile{
 		name: name,
@@ -138,6 +145,8 @@ type directoryCreate struct {
 	permission os.FileMode
 }
 
+// CreateDirectory returns a file applier to create the directory with
+// the provided name and permission
 func CreateDirectory(name string, perm os.FileMode) FileApplier {
 	return &directoryCreate{
 		name:       name,
@@ -158,6 +167,7 @@ type rename struct {
 	new string
 }
 
+// Rename returns a file applier which renames a file
 func Rename(old, new string) FileApplier {
 	return &rename{
 		old: old,
@@ -175,6 +185,7 @@ type chown struct {
 	gid  int
 }
 
+// Chown returns a file applier which changes the ownership of a file
 func Chown(name string, uid, gid int) FileApplier {
 	return &chown{
 		name: name,
@@ -187,6 +198,7 @@ func (c *chown) ApplyFile(root string) error {
 	return os.Chown(filepath.Join(root, c.name), c.uid, c.gid)
 }
 
+// InitWithFiles returns a layer initializer from the given file appliers
 func InitWithFiles(files ...FileApplier) LayerInit {
 	return func(root string) error {
 		for _, f := range files {
@@ -198,6 +210,8 @@ func InitWithFiles(files ...FileApplier) LayerInit {
 	}
 }
 
+// CreateMetadata creates a metadata array from the provided layers
+// in a manner that would be returned from the layer store on removal.
 func CreateMetadata(layers ...layer.Layer) ([]layer.Metadata, error) {
 	metadata := make([]layer.Metadata, len(layers))
 	for i := range layers {
@@ -220,6 +234,7 @@ func CreateMetadata(layers ...layer.Layer) ([]layer.Metadata, error) {
 	return metadata, nil
 }
 
+// CheckMetadata checks that 2 metadata arrays are equal
 func CheckMetadata(metadata, expectedMetadata []layer.Metadata) error {
 	if len(metadata) != len(expectedMetadata) {
 		return errors.Errorf("unexpected number of deletes %d, expected %d", len(metadata), len(expectedMetadata))
@@ -250,6 +265,8 @@ func releaseAndCheckDeleted(ls layer.Store, layer layer.Layer, removed ...layer.
 	return nil
 }
 
+// CheckSameLayer checks whether the 2 provides layers are same. The layers
+// must have the exact same digests, size, and parents.
 func CheckSameLayer(l1, l2 layer.Layer) error {
 	if l1.ChainID() != l2.ChainID() {
 		return errors.Errorf("mismatched ID: %s vs %s", l1.ChainID(), l2.ChainID())
@@ -283,6 +300,8 @@ func CheckSameLayer(l1, l2 layer.Layer) error {
 	return nil
 }
 
+// CheckLayerDiff checks that the diff stream for the provided layer
+// exactly matches the provided byte array.
 func CheckLayerDiff(expected []byte, layer layer.Layer) error {
 	expectedDigest := digest.FromBytes(expected)
 
@@ -343,6 +362,8 @@ func byteDiff(b1, b2 []byte) ([]byte, []byte) {
 	return b1[i:], b2[i:]
 }
 
+// TarFromFiles returns an uncompressed tar byte array created from using
+// the provided file appliers.
 func TarFromFiles(files ...FileApplier) ([]byte, error) {
 	td, err := ioutil.TempDir("", "tar-")
 	if err != nil {
@@ -369,6 +390,8 @@ func TarFromFiles(files ...FileApplier) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// CheckLayer checks that the provider layer directory content exactly matches
+// a directory created using the provided layer initializers.
 func CheckLayer(ls layer.Store, layerID layer.ChainID, layerFuncs ...LayerInit) error {
 	td, err := ioutil.TempDir("", "check-layer")
 	if err != nil {
@@ -406,6 +429,8 @@ func CheckLayer(ls layer.Store, layerID layer.ChainID, layerFuncs ...LayerInit) 
 	return testErr
 }
 
+// CheckDirectoryEqual compares two directory paths to make sure that
+// the content of the directories is the same.
 func CheckDirectoryEqual(d1, d2 string) error {
 	c1, err := continuity.NewContext(d1)
 	if err != nil {
