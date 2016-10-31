@@ -91,118 +91,64 @@ func CreateLayerChain(ls layer.Store, layerFuncs ...LayerInit) (l layer.Layer, e
 
 }
 
-// FileApplier applies single file changes
-type FileApplier interface {
-	ApplyFile(root string) error
-}
-
-type testFile struct {
-	name       string
-	content    []byte
-	permission os.FileMode
-}
+// FileApply applies single file changes
+type ApplyFile func(root string) error
 
 // NewTestFile returns a file applier which creates a file as the
 // provided name with the given content and permission.
-func NewTestFile(name string, content []byte, perm os.FileMode) FileApplier {
-	return &testFile{
-		name:       name,
-		content:    content,
-		permission: perm,
+func NewTestFile(name string, content []byte, perm os.FileMode) ApplyFile {
+	return func(root string) error {
+		fullPath := filepath.Join(root, name)
+		if err := ioutil.WriteFile(fullPath, content, perm); err != nil {
+			return err
+		}
+
+		if err := os.Chmod(fullPath, perm); err != nil {
+			return err
+		}
+
+		return nil
 	}
-}
-
-func (tf *testFile) ApplyFile(root string) error {
-	fullPath := filepath.Join(root, tf.name)
-	if err := ioutil.WriteFile(fullPath, tf.content, tf.permission); err != nil {
-		return err
-	}
-
-	if err := os.Chmod(fullPath, tf.permission); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type removeFile struct {
-	name string
 }
 
 // RemoveFile returns a file applier which removes the provided file name
-func RemoveFile(name string) FileApplier {
-	return &removeFile{
-		name: name,
+func RemoveFile(name string) ApplyFile {
+	return func(root string) error {
+		return os.RemoveAll(filepath.Join(root, name))
 	}
-}
-
-func (rf *removeFile) ApplyFile(root string) error {
-	return os.RemoveAll(filepath.Join(root, rf.name))
-}
-
-type directoryCreate struct {
-	name       string
-	permission os.FileMode
 }
 
 // CreateDirectory returns a file applier to create the directory with
 // the provided name and permission
-func CreateDirectory(name string, perm os.FileMode) FileApplier {
-	return &directoryCreate{
-		name:       name,
-		permission: perm,
+func CreateDirectory(name string, perm os.FileMode) ApplyFile {
+	return func(root string) error {
+		fullPath := filepath.Join(root, name)
+		if err := os.MkdirAll(fullPath, perm); err != nil {
+			return err
+		}
+		return nil
 	}
-}
-
-func (dc *directoryCreate) ApplyFile(root string) error {
-	fullPath := filepath.Join(root, dc.name)
-	if err := os.MkdirAll(fullPath, dc.permission); err != nil {
-		return err
-	}
-	return nil
-}
-
-type rename struct {
-	old string
-	new string
 }
 
 // Rename returns a file applier which renames a file
-func Rename(old, new string) FileApplier {
-	return &rename{
-		old: old,
-		new: new,
+func Rename(old, new string) ApplyFile {
+	return func(root string) error {
+		return os.Rename(filepath.Join(root, old), filepath.Join(root, new))
 	}
-}
-
-func (r *rename) ApplyFile(root string) error {
-	return os.Rename(filepath.Join(root, r.old), filepath.Join(root, r.new))
-}
-
-type chown struct {
-	name string
-	uid  int
-	gid  int
 }
 
 // Chown returns a file applier which changes the ownership of a file
-func Chown(name string, uid, gid int) FileApplier {
-	return &chown{
-		name: name,
-		uid:  uid,
-		gid:  gid,
+func Chown(name string, uid, gid int) ApplyFile {
+	return func(root string) error {
+		return os.Chown(filepath.Join(root, name), uid, gid)
 	}
 }
 
-func (c *chown) ApplyFile(root string) error {
-	return os.Chown(filepath.Join(root, c.name), c.uid, c.gid)
-}
-
 // InitWithFiles returns a layer initializer from the given file appliers
-func InitWithFiles(files ...FileApplier) LayerInit {
+func InitWithFiles(files ...ApplyFile) LayerInit {
 	return func(root string) error {
 		for _, f := range files {
-			if err := f.ApplyFile(root); err != nil {
+			if err := f(root); err != nil {
 				return err
 			}
 		}
@@ -364,7 +310,7 @@ func byteDiff(b1, b2 []byte) ([]byte, []byte) {
 
 // TarFromFiles returns an uncompressed tar byte array created from using
 // the provided file appliers.
-func TarFromFiles(files ...FileApplier) ([]byte, error) {
+func TarFromFiles(files ...ApplyFile) ([]byte, error) {
 	td, err := ioutil.TempDir("", "tar-")
 	if err != nil {
 		return nil, err
@@ -372,7 +318,7 @@ func TarFromFiles(files ...FileApplier) ([]byte, error) {
 	defer os.RemoveAll(td)
 
 	for _, f := range files {
-		if err := f.ApplyFile(td); err != nil {
+		if err := f(td); err != nil {
 			return nil, err
 		}
 	}

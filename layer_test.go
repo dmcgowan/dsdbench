@@ -104,12 +104,12 @@ func TestTarRegister(t *testing.T) {
 	}
 	defer cleanup(t, ls)
 
-	files1 := []FileApplier{
+	files1 := []ApplyFile{
 		CreateDirectory("/etc", 0755),
 		NewTestFile("/etc/hosts", []byte("mydomain 10.0.0.1"), 0644),
 		NewTestFile("/etc/profile", []byte("PATH=/usr/bin"), 0644),
 	}
-	files2 := []FileApplier{
+	files2 := []ApplyFile{
 		CreateDirectory("/etc", 0755),
 		NewTestFile("/etc/hosts", []byte("mydomain 10.0.0.2"), 0644),
 		NewTestFile("/etc/profile", []byte("PATH=/usr/bin"), 0666),

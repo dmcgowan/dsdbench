@@ -42,11 +42,11 @@ func BenchmarkGetSingleBaseMount(b *testing.B) {
 	}
 	defer cleanup(b, ls)
 
-	l1Init := InitWithFiles([]FileApplier{
+	l1Init := InitWithFiles(
 		CreateDirectory("/etc", 0755),
 		NewTestFile("/etc/hosts", []byte("mydomain 10.0.0.1"), 0644),
 		NewTestFile("/etc/profile", []byte("PATH=/usr/bin"), 0644),
-	}...)
+	)
 
 	l, err := CreateLayerChain(ls, l1Init)
 	if err != nil {
