@@ -10,8 +10,6 @@ daemon may be affected by in this configuration.
 run as root in order to successfully mount. Use `DOCKER_GRAPHDRIVER` and
 `DOCKER_GRAPHDRIVER_OPTIONS` environment variables to configure.
 
-NOTE: Currently Docker and Docker's vendor path must be in the $GOPATH.
-
 ### Run tests
 ```
 $ DOCKER_GRAPHDRIVER=overlay2 go test -v .
