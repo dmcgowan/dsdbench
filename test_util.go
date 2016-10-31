@@ -91,7 +91,7 @@ func CreateLayerChain(ls layer.Store, layerFuncs ...LayerInit) (l layer.Layer, e
 
 }
 
-// FileApply applies single file changes
+// ApplyFile applies single file changes
 type ApplyFile func(root string) error
 
 // NewTestFile returns a file applier which creates a file as the
