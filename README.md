@@ -1,4 +1,4 @@
-# Docker Storage Driver Benchmarks and Tests
+# Docker Storage Driver Benchmarks and Tests [![Go Report Card](https://goreportcard.com/badge/github.com/dmcgowan/dsdbench)](https://goreportcard.com/report/github.com/dmcgowan/dsdbench)
 
 `dsdbench` runs benchmarks and tests for storage driver configurations to help
 figure out how the configuration will perform and which known issues the
