@@ -100,9 +100,24 @@ func TestChmod(t *testing.T) {
 	t.Skip("Not implemented")
 }
 
-// See https://github.com/docker/docker/issues/24913
+// See https://github.com/docker/docker/issues/20240 aufs
+// See https://github.com/docker/docker/issues/24913 overlay
+// see https://github.com/docker/docker/issues/28391 overlay2
 func TestChown(t *testing.T) {
-	t.Skip("Not implemented")
+	l1Init := InitWithFiles(
+		CreateDirectory("/opt", 0700),
+		CreateDirectory("/opt/a", 0700),
+		CreateDirectory("/opt/a/b", 0700),
+		NewTestFile("/opt/a/b/file.txt", []byte("hello"), 0644),
+	)
+	l2Init := InitWithFiles(
+		Chown("/opt", 1, 1),
+		Chown("/opt/a", 1, 1),
+		Chown("/opt/a/b", 1, 1),
+		Chown("/opt/a/b/file.txt", 1, 1),
+	)
+
+	simpleLayerTest(t, l1Init, l2Init)
 }
 
 // https://github.com/docker/docker/issues/25409
