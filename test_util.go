@@ -23,7 +23,7 @@ type LayerInit func(root string) error
 // given layer initialize function on top of the given parent.
 func CreateLayer(ls layer.Store, parent layer.ChainID, layerFunc LayerInit) (l layer.Layer, err error) {
 	containerID := stringid.GenerateRandomID()
-	mount, err := ls.CreateRWLayer(containerID, parent, "", nil, nil)
+	mount, err := ls.CreateRWLayer(containerID, parent, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create rw layer")
 	}
@@ -352,7 +352,7 @@ func CheckLayer(ls layer.Store, layerID layer.ChainID, layerFuncs ...LayerInit) 
 	}
 
 	containerID := stringid.GenerateRandomID()
-	rw, err := ls.CreateRWLayer(containerID, layerID, "", nil, nil)
+	rw, err := ls.CreateRWLayer(containerID, layerID, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to create rw layer")
 	}

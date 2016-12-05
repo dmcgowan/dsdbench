@@ -54,7 +54,7 @@ func BenchmarkGetSingleBaseMount(b *testing.B) {
 	}
 
 	containerID := stringid.GenerateRandomID()
-	rw, err := ls.CreateRWLayer(containerID, l.ChainID(), "", nil, nil)
+	rw, err := ls.CreateRWLayer(containerID, l.ChainID(), nil)
 	if err != nil {
 		b.Fatalf("Failed to create rw layer: %v", err)
 	}
@@ -111,7 +111,7 @@ func benchmarkGetBaseMountWithDepth(b *testing.B, depth int) {
 	}
 
 	containerID := stringid.GenerateRandomID()
-	rw, err := ls.CreateRWLayer(containerID, l.ChainID(), "", nil, nil)
+	rw, err := ls.CreateRWLayer(containerID, l.ChainID(), nil)
 	if err != nil {
 		b.Fatalf("Failed to create rw layer: %v", err)
 	}
