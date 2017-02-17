@@ -17,38 +17,6 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
-// ContainerChange contains response of Engine API:
-// GET "/containers/{name:.*}/changes"
-type ContainerChange struct {
-	Kind int
-	Path string
-}
-
-// ImageHistory contains response of Engine API:
-// GET "/images/{name:.*}/history"
-type ImageHistory struct {
-	ID        string `json:"Id"`
-	Created   int64
-	CreatedBy string
-	Tags      []string
-	Size      int64
-	Comment   string
-}
-
-// ImageDelete contains response of Engine API:
-// DELETE "/images/{name:.*}"
-type ImageDelete struct {
-	Untagged string `json:",omitempty"`
-	Deleted  string `json:",omitempty"`
-}
-
-// GraphDriverData returns Image's graph driver config info
-// when calling inspect command
-type GraphDriverData struct {
-	Name string
-	Data map[string]string
-}
-
 // RootFS returns Image's RootFS description including the layer IDs.
 type RootFS struct {
 	Type      string
@@ -125,13 +93,6 @@ type ContainerStats struct {
 	OSType string        `json:"ostype"`
 }
 
-// ContainerProcessList contains response of Engine API:
-// GET "/containers/{name:.*}/top"
-type ContainerProcessList struct {
-	Processes [][]string
-	Titles    []string
-}
-
 // Ping contains response of Engine API:
 // GET "/_ping"
 type Ping struct {
@@ -154,11 +115,11 @@ type Version struct {
 	BuildTime     string `json:",omitempty"`
 }
 
-// Commit records a external tool actual commit id version along the
-// one expect by dockerd as set at build time
+// Commit holds the Git-commit (SHA1) that a binary was built from, as reported
+// in the version-string of external tools, such as containerd, or runC.
 type Commit struct {
-	ID       string
-	Expected string
+	ID       string // ID is the actual commit ID of external tool.
+	Expected string // Expected is the commit ID of external tool expected by dockerd as set at build time.
 }
 
 // Info contains response of Engine API:
@@ -509,27 +470,6 @@ type DiskUsage struct {
 	Volumes    []*Volume
 }
 
-// ImagesPruneConfig contains the configuration for Engine API:
-// POST "/images/prune"
-type ImagesPruneConfig struct {
-	DanglingOnly bool
-}
-
-// ContainersPruneConfig contains the configuration for Engine API:
-// POST "/images/prune"
-type ContainersPruneConfig struct {
-}
-
-// VolumesPruneConfig contains the configuration for Engine API:
-// POST "/images/prune"
-type VolumesPruneConfig struct {
-}
-
-// NetworksPruneConfig contains the configuration for Engine API:
-// POST "/networks/prune"
-type NetworksPruneConfig struct {
-}
-
 // ContainersPruneReport contains the response for Engine API:
 // POST "/containers/prune"
 type ContainersPruneReport struct {
@@ -547,7 +487,7 @@ type VolumesPruneReport struct {
 // ImagesPruneReport contains the response for Engine API:
 // POST "/images/prune"
 type ImagesPruneReport struct {
-	ImagesDeleted  []ImageDelete
+	ImagesDeleted  []ImageDeleteResponseItem
 	SpaceReclaimed uint64
 }
 
@@ -567,4 +507,13 @@ type SecretCreateResponse struct {
 // SecretListOptions holds parameters to list secrets
 type SecretListOptions struct {
 	Filters filters.Args
+}
+
+// PushResult contains the tag, manifest digest, and manifest size from the
+// push. It's used to signal this information to the trust code in the client
+// so it can sign the manifest if necessary.
+type PushResult struct {
+	Tag    string
+	Digest string
+	Size   int
 }

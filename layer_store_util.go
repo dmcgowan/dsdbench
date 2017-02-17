@@ -56,7 +56,12 @@ func getLayerStore() (layer.Store, error) {
 		driverOptions = strings.Split(options, " ")
 	}
 
-	gd, err := graphdriver.GetDriver(driverName, td, driverOptions, nil, nil, nil)
+	options := graphdriver.Options{
+		Root:          td,
+		DriverOptions: driverOptions,
+	}
+
+	gd, err := graphdriver.GetDriver(driverName, nil, options)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get graph driver")
 	}
